@@ -1,0 +1,101 @@
+{
+  "clientes": [
+    { "id": "c1", "nome": "Empresa Exemplo LTDA", "responsavel": "João Silva", "createdAt": "2025-01-01T00:00:00.000Z", "updatedAt": "2025-01-01T00:00:00.000Z" },
+    { "id": "c2", "nome": "Comercial Alpha", "responsavel": "Maria Lima", "createdAt": "2025-01-02T00:00:00.000Z", "updatedAt": "2025-01-02T00:00:00.000Z" },
+    { "id": "c3", "nome": "Indústria Beta SA", "responsavel": "Carlos Souza", "createdAt": "2025-01-03T00:00:00.000Z", "updatedAt": "2025-01-03T00:00:00.000Z" }
+  ],
+  "produtos": [
+    {
+      "id": "p1",
+      "name": "Camiseta DryFit",
+      "ref": "CAM-001",
+      "type": "Uniforme",
+      "active": true,
+      "description": "Camiseta para treino",
+      "finishes": ["Silk"],
+      "sizes": ["P", "M", "G", "GG"],
+      "colors": [
+        { "id": "pc1", "colorName": "Azul", "colorHex": "#1e3a8a", "media": { "photos": [], "mockups": [], "arts": [] } },
+        { "id": "pc2", "colorName": "Preta", "colorHex": "#111827", "media": { "photos": [], "mockups": [], "arts": [] } }
+      ],
+      "createdAt": "2025-01-01T00:00:00.000Z",
+      "updatedAt": "2025-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "p2",
+      "name": "Moletom Zíper",
+      "ref": "MOL-201",
+      "type": "Uniforme",
+      "active": true,
+      "description": "Moletom com capuz e zíper",
+      "finishes": ["Bordado"],
+      "sizes": ["P", "M", "G", "GG"],
+      "colors": [
+        { "id": "pc3", "colorName": "Cinza Mescla", "colorHex": "#6b7280", "media": { "photos": [], "mockups": [], "arts": [] } }
+      ],
+      "createdAt": "2025-01-02T00:00:00.000Z",
+      "updatedAt": "2025-01-02T00:00:00.000Z"
+    },
+    {
+      "id": "p3",
+      "name": "Boné Trucker",
+      "ref": "BON-310",
+      "type": "Brinde",
+      "active": true,
+      "finishes": ["Silk"],
+      "sizes": ["U"],
+      "colors": [
+        { "id": "pc4", "colorName": "Branco/Preto", "colorHex": "#ffffff", "media": { "photos": [], "mockups": [], "arts": [] } }
+      ],
+      "createdAt": "2025-01-03T00:00:00.000Z",
+      "updatedAt": "2025-01-03T00:00:00.000Z"
+    }
+  ],
+  "pedidos": [
+    {
+      "id": "o1",
+      "clientName": "Empresa Exemplo LTDA",
+      "slaISO": "2025-01-10T00:00:00.000Z",
+      "status": "Pré-produção",
+      "items": [ { "ProductId": "p1", "ProductName": "Camiseta DryFit", "color": "Azul", "grade": { "P": 10, "M": 20, "G": 15, "GG": 8 } } ],
+      "logos": [], "mockups": [], "arts": [],
+      "createdAt": "2025-01-01T00:00:00.000Z", "updatedAt": "2025-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "o2",
+      "clientName": "Comercial Alpha",
+      "slaISO": "2025-01-12T00:00:00.000Z",
+      "status": "Em Produção",
+      "items": [ { "ProductId": "p2", "ProductName": "Moletom Zíper", "color": "Cinza Mescla", "grade": { "P": 5, "M": 12, "G": 8, "GG": 5 } } ],
+      "logos": [], "mockups": [], "arts": [],
+      "createdAt": "2025-01-02T00:00:00.000Z", "updatedAt": "2025-01-02T00:00:00.000Z"
+    },
+    {
+      "id": "o3",
+      "clientName": "Indústria Beta SA",
+      "slaISO": "2025-01-15T00:00:00.000Z",
+      "status": "Pré-produção",
+      "items": [ { "ProductId": "p3", "ProductName": "Boné Trucker", "color": "Branco/Preto", "grade": { "U": 50 } } ],
+      "logos": [], "mockups": [], "arts": [],
+      "createdAt": "2025-01-03T00:00:00.000Z", "updatedAt": "2025-01-03T00:00:00.000Z"
+    }
+  ],
+  "ops": [
+    {
+      "id": "op1",
+      "orderId": "o1",
+      "clientName": "Empresa Exemplo LTDA",
+      "slaISO": "2025-01-10T00:00:00.000Z",
+      "publicada": true,
+      "items": [ { "id": "opi1", "orderItemId": "1", "productName": "Camiseta DryFit", "colorName": "Azul", "totalQty": 53, "stages": [] } ]
+    },
+    {
+      "id": "op2",
+      "orderId": "o2",
+      "clientName": "Comercial Alpha",
+      "slaISO": "2025-01-12T00:00:00.000Z",
+      "publicada": true,
+      "items": [ { "id": "opi2", "orderItemId": "1", "productName": "Moletom Zíper", "colorName": "Cinza Mescla", "totalQty": 30, "stages": [] } ]
+    }
+  ]
+}

@@ -1,0 +1,200 @@
+﻿import type { StoreState } from './types';
+
+export const seedData: StoreState = {
+  clientes: [
+    {
+      id: 'cli-001',
+      nome: 'Empresa Demo Ltda',
+      doc: '12.345.678/0001-90',
+      whats: '11987654321',
+      email: 'contato@empresademo.com.br',
+      endereco: 'Rua das Indústrias, 123 - São Paulo, SP',
+      obs: 'Cliente preferencial - prioridade em entregas',
+      createdAt: '2025-01-01T10:00:00.000Z',
+      updatedAt: '2025-01-01T10:00:00.000Z',
+    },
+  ],
+  produtos: [
+    {
+      id: 'prod-001',
+      name: 'Camisa Polo Premium V2',
+      ref: 'POLO-001-V2',
+      type: 'Uniforme',
+      active: true,
+      description: 'Camisa polo 100% algodão com bordado',
+      finishes: ['Bordado', 'Silk'],
+      sizes: ['PP', 'P', 'M', 'G', 'GG', 'G1', 'G2'],
+      colors: [
+        {
+          id: 'color-001',
+          colorName: 'Azul Marinho',
+          colorHex: '#0E4AA7',
+          media: {
+            photos: [],
+            mockups: [],
+            arts: [],
+          },
+          matrix: {
+            PP: { qty: 5 },
+            P: { qty: 10 },
+            M: { qty: 15 },
+            G: { qty: 15 },
+            GG: { qty: 10 },
+            G1: { qty: 5 },
+            G2: { qty: 3 },
+          },
+        },
+        {
+          id: 'color-002',
+          colorName: 'Branco',
+          colorHex: '#FFFFFF',
+          media: {
+            photos: [],
+            mockups: [],
+            arts: [],
+          },
+          matrix: {
+            PP: { qty: 3 },
+            P: { qty: 8 },
+            M: { qty: 12 },
+            G: { qty: 12 },
+            GG: { qty: 8 },
+            G1: { qty: 4 },
+            G2: { qty: 2 },
+          },
+        },
+      ],
+      createdAt: '2025-01-01T10:00:00.000Z',
+      updatedAt: '2025-01-01T10:00:00.000Z',
+    },
+  ],
+  pedidos: [
+    {
+      id: 'PED-001',
+      clientName: 'Empresa Demo Ltda',
+      slaISO: '2025-02-15T18:00:00.000Z',
+      status: 'Pré-produção',
+      items: [
+        {
+          productId: 'prod-001',
+          productName: 'Camisa Polo Premium',
+          color: 'Azul Marinho',
+          grade: {
+            PP: 5,
+            P: 10,
+            M: 15,
+            G: 15,
+            GG: 10,
+            G1: 5,
+            G2: 3,
+          },
+          notes: 'Bordado no peito esquerdo com logo da empresa',
+        },
+      ],
+      logos: [],
+      mockups: [],
+      arts: [],
+      obs: 'Pedido prioritário - cliente VIP',
+      createdAt: '2025-01-10T10:00:00.000Z',
+      updatedAt: '2025-01-10T10:00:00.000Z',
+    },
+  ],
+  ops: [
+    {
+      id: 'OP-001',
+      orderId: 'PED-001',
+      clientName: 'Empresa Demo Ltda',
+      slaISO: '2025-02-15T18:00:00.000Z',
+      publicada: false,
+      mídia: {
+        photos: [],
+        mockups: [],
+        arts: [],
+      },
+      stages: [],
+      items: [],
+      createdAt: '2025-01-10T10:00:00.000Z',
+      updatedAt: '2025-01-10T10:00:00.000Z',
+    },
+    {
+      id: 'OP-002',
+      orderId: 'PED-001',
+      clientName: 'Empresa Demo Ltda',
+      slaISO: '2025-02-20T18:00:00.000Z',
+      publicada: true,
+      mídia: {
+        photos: [],
+        mockups: [],
+        arts: [],
+      },
+      items: [{
+        id: 'item-001',
+        orderItemId: '1',
+        productName: 'Camisa Polo Premium',
+        colorName: 'Azul Marinho',
+        totalQty: 63,
+        stages: [
+        {
+          id: 'stage-001',
+          name: 'Compras',
+          kind: 'Interna',
+          responsible: 'Maria Silva',
+          unitValue: 5,
+          checklist: [
+            { id: 'check-001', text: 'Tecido polo 100% algodão', done: true },
+            { id: 'check-002', text: 'Linha de costura azul', done: false },
+            { id: 'check-003', text: 'Botões personalizados', done: false },
+          ],
+          status: 'Em Execução',
+          cron: {
+            running: true,
+            startedAt: Date.now() - 3600000,
+            totalMs: 0,
+          },
+          doneQty: 0,
+        },
+        {
+          id: 'stage-002',
+          name: 'Bordado',
+          kind: 'Terceirizada',
+          responsible: 'Bordados XYZ',
+          unitValue: 8,
+          freightGo: 50,
+          freightBack: 50,
+          checklist: [
+            { id: 'check-004', text: 'Verificar arte finalizada', done: false },
+            { id: 'check-005', text: 'Confirmar cor da linha', done: false },
+          ],
+          status: 'A Fazer',
+          cron: {
+            running: false,
+            totalMs: 0,
+          },
+          doneQty: 0,
+        },
+        {
+          id: 'stage-003',
+          name: 'Qualidade',
+          kind: 'Interna',
+          responsible: 'João Santos',
+          checklist: [
+            { id: 'check-006', text: 'Inspeção visual', done: false },
+            { id: 'check-007', text: 'Verificar medidas', done: false },
+            { id: 'check-008', text: 'Teste de lavagem', done: false },
+          ],
+          status: 'A Fazer',
+          cron: {
+            running: false,
+            totalMs: 0,
+          },
+          doneQty: 0,
+        },
+      ],
+    },
+  ],
+  responsaveis: ['Maria Silva', 'João Santos', 'Bordados XYZ', 'Costura ABC'],
+    }
+  ],
+  responsaveis: ['Maria Silva', 'João Santos', 'Bordados XYZ', 'Costura ABC']
+};
+

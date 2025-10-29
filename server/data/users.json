@@ -1,0 +1,61 @@
+[
+  {
+    "id": "u-willian",
+    "name": "Willian",
+    "email": "willianinove01@gmail.com",
+    "phone": "",
+    "roleId": "admin",
+    "permissions": [
+      "dashboard",
+      "clientes",
+      "produtos",
+      "pedidos",
+      "ops",
+      "kanban",
+      "financeiro",
+      "relatorios",
+      "config"
+    ],
+    "status": "ativo",
+    "passwordHash": "$2a$10$HMRTCboo0h8avH3BEZQCJ.DGHW/C9rVOvNOzTatq80kuDy9ClYNo2",
+    "createdAt": 1761558120000,
+    "updatedAt": 1761768878677
+  },
+  {
+    "id": "admin-fixed",
+    "name": "Administrador",
+    "email": "admin@admin.com",
+    "phone": "",
+    "roleId": "admin",
+    "permissions": [
+      "dashboard",
+      "clientes",
+      "produtos",
+      "pedidos",
+      "ops",
+      "kanban",
+      "financeiro",
+      "relatorios",
+      "config"
+    ],
+    "status": "ativo",
+    "passwordHash": "$2a$10$CwTycUXWue0Thq9StjUM0uJ8rY1o1lQ9G8gZxH0W5E8dQwW1u8e6K",
+    "createdAt": 1761568808000,
+    "updatedAt": 1761568808000
+  },
+  {
+    "id": "a2016de2-bd81-484b-9076-5dfb19f2ac12",
+    "name": "inove confeccao e brindes",
+    "email": "inoveconfeccaoebrindes@gmail.com",
+    "phone": "",
+    "roleId": "viewer",
+    "permissions": [
+      "dashboard",
+      "relatorios"
+    ],
+    "status": "ativo",
+    "passwordHash": "$2a$10$qBSr9G2F1g9lPNokju.rDeo4D3qXnMYD.k/JSYfAHhmwakBGdoXNC",
+    "createdAt": 1761769799534,
+    "updatedAt": 1761769799534
+  }
+]

@@ -1,0 +1,1103 @@
+﻿import { useState, useRef, useEffect } from "react";
+import { useStore } from "@/store/useStore";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { set as idbSet, get as idbGet, del as idbDel } from "idb-keyval";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, Edit, Trash2, Copy, X, Upload, Download, Image as ImageIcon } from "lucide-react";
+import { toast } from "sonner";
+import type { Product, ProductColor, Size } from "@/store/types";
+
+// Thumbnail para exibir imagem salva no idb-keyval
+function Thumbnail({ keyRef }: { keyRef: string }) {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const file = (await idbGet(keyRef)) as File;
+        if (file && active) {
+          const u = URL.createObjectURL(file);
+          setUrl(u);
+        }
+      } catch {}
+    })();
+    return () => {
+      active = false;
+      if (url) URL.revokeObjectURL(url);
+    };
+  }, [keyRef]);
+  return (
+    <div className="w-10 h-10 rounded-md overflow-hidden border bg-background">
+      {url ? (
+        <img src={url} alt="thumb" className="w-full h-full object-cover" />
+      ) : (
+        <div className="w-full h-full bg-muted" />
+      )}
+    </div>
+  );
+}
+
+const STANDARD_SIZES: Size[] = [
+  "PP",
+  "P",
+  "M",
+  "G",
+  "GG",
+  "G1",
+  "G2",
+  "G3",
+  "G4",
+  "G5",
+];
+const DEFAULT_FINISHES = [
+  "Silk",
+  "Bordado",
+  "DTF",
+  "Sublimação",
+  "Transfer",
+  "Estampa Digital",
+];
+
+export default function Produtos() {
+  const { loading } = useStore();
+  const { produtos, createProduto, updateProduto, deleteProduto } = useStore();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingProduto, setEditingProduto] = useState<Product | null>(null);
+  const [formData, setFormData] = useState<Partial<Product>>({
+    type: "Uniforme",
+    active: true,
+    finishes: [],
+    sizes: [...STANDARD_SIZES],
+    colors: [],
+  });
+  const [customFinish, setCustomFinish] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [filter, setFilter] = useState<"Todos" | "Uniforme" | "Brinde">("Todos");
+  const [query, setQuery] = useState("");
+  const [sort, setSort] = useState<"name-asc" | "name-desc" | "ref-asc" | "ref-desc" | "created-desc">("name-asc");
+
+  // Sincroniza filtro com a query string (?type=Todos|Uniforme|Brinde)
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const q = params.get("type") as "Todos" | "Uniforme" | "Brinde" | null;
+      if (q && ["Todos", "Uniforme", "Brinde"].includes(q)) {
+        setFilter(q);
+      }
+      const qs = params.get("q");
+      if (qs) setQuery(qs);
+      const s = params.get("sort") as typeof sort | null;
+      if (s && ["name-asc","name-desc","ref-asc","ref-desc","created-desc"].includes(s)) setSort(s);
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      params.set("type", filter);
+      if (query) params.set("q", query); else params.delete("q");
+      if (sort) params.set("sort", sort);
+      const url = `${window.location.pathname}?${params.toString()}`;
+      window.history.replaceState(null, "", url);
+    } catch {}
+  }, [filter, query, sort]);
+
+  // Modal para adicionar tamanho
+  const [sizeDialogOpen, setSizeDialogOpen] = useState(false);
+  const [targetColorIndex, setTargetColorIndex] = useState<number | null>(null);
+  const [newSizeName, setNewSizeName] = useState("");
+  const [newSizeQty, setNewSizeQty] = useState(0);
+
+  const handleOpenDialog = (produto?: Product) => {
+    if (produto) {
+      setEditingProduto(produto);
+      setFormData(produto);
+    } else {
+      setEditingProduto(null);
+      setFormData({
+        type: "Uniforme",
+        active: true,
+        finishes: [],
+        sizes: [...STANDARD_SIZES],
+        colors: [],
+      });
+    }
+    setDialogOpen(true);
+  };
+
+  const handleSave = () => {
+    if (!formData.name || !formData.ref) {
+      toast.error("Nome e Referência são obrigatórios");
+      return;
+    }
+
+    if (uploading) {
+      toast.error("Aguarde o upload das imagens");
+      return;
+    }
+
+    // Check unique ref
+    const existingRef = produtos.find(
+      (p) => p.ref === formData.ref && p.id !== editingProduto?.id,
+    );
+    if (existingRef) {
+      toast.error("Referência já existe");
+      return;
+    }
+
+    if (editingProduto) {
+      updateProduto(editingProduto.id, formData);
+      toast.success("Produto atualizado!");
+    } else {
+      createProduto(
+        formData as Omit<Product, "id" | "createdAt" | "updatedAt">,
+      );
+      toast.success("Produto criado!");
+    }
+
+    setDialogOpen(false);
+  };
+
+  const handleDelete = (id: string, name: string) => {
+    if (confirm(`Confirma exclusão do produto "${name}"?`)) {
+      deleteProduto(id);
+      toast.success("Produto excluído!");
+    }
+  };
+
+  const handleDuplicate = (produto: Product) => {
+    const newProduto = {
+      ...produto,
+      name: `${produto.name} (Cópia)`,
+      ref: `${produto.ref}-COPY`,
+    };
+    delete (newProduto as any).id;
+    delete (newProduto as any).createdAt;
+    delete (newProduto as any).updatedAt;
+    createProduto(newProduto);
+    toast.success("Produto duplicado!");
+  };
+
+  const addColor = () => {
+    // Inicializa com tamanhos padrão PP->G5 quando for Uniforme
+    const defaultMatrix: Record<string, { qty?: number }> = {};
+    if (formData.type === "Uniforme") {
+      (STANDARD_SIZES || []).forEach((s) => (defaultMatrix[s] = { qty: 0 }));
+    }
+
+    setFormData({
+      ...formData,
+      colors: [
+        ...(formData.colors || []),
+        {
+          id: Math.random().toString(36).substring(7),
+          colorName: "",
+          colorHex: "#000000",
+          media: { photos: [], mockups: [], arts: [] },
+          ...(formData.type === "Uniforme"
+            ? { matrix: defaultMatrix }
+            : { qty: 0 }),
+        },
+      ],
+    });
+  };
+
+  const updateColor = (index: number, updates: Partial<ProductColor>) => {
+    const colors = [...(formData.colors || [])];
+    colors[index] = { ...colors[index], ...updates };
+    setFormData({ ...formData, colors });
+  };
+
+  // Sempre que o tipo for Uniforme, garanta que toda cor tenha matrix com STANDARD_SIZES
+  useEffect(() => {
+    if (formData.type !== "Uniforme") return;
+    const colors = [...(formData.colors || [])];
+    let changed = false;
+    colors.forEach((c, i) => {
+      if (!c.matrix || Object.keys(c.matrix).length === 0) {
+        const m: Record<string, { qty?: number }> = {};
+        (STANDARD_SIZES || []).forEach((s) => (m[s] = { qty: 0 }));
+        colors[i] = { ...c, matrix: m } as any;
+        changed = true;
+      }
+    });
+    if (changed) setFormData({ ...formData, colors });
+  }, [formData.type]);
+
+  const removeColor = (index: number) => {
+    setFormData({
+      ...formData,
+      colors: formData.colors?.filter((_, i) => i !== index),
+    });
+  };
+
+  const updateMatrix = (colorIndex: number, size: Size, qty: number) => {
+    const colors = [...(formData.colors || [])];
+    const color = colors[colorIndex];
+    if (!color.matrix) color.matrix = {};
+    color.matrix[size] = { qty };
+    setFormData({ ...formData, colors });
+  };
+
+  const getTotalQty = (color: ProductColor) => {
+    if (formData.type === "Brinde") {
+      return color.qty || 0;
+    }
+    if (!color.matrix) return 0;
+    return Object.values(color.matrix).reduce(
+      (sum, item) => sum + (item?.qty || 0),
+      0,
+    );
+  };
+
+  const toggleFinish = (finish: string) => {
+    const finishes = formData.finishes || [];
+    if (finishes.includes(finish)) {
+      setFormData({
+        ...formData,
+        finishes: finishes.filter((f) => f !== finish),
+      });
+    } else {
+      setFormData({ ...formData, finishes: [...finishes, finish] });
+    }
+  };
+
+  const addCustomFinish = () => {
+    const trimmed = customFinish.trim();
+    if (trimmed.length < 2 || trimmed.length > 30) {
+      toast.error("Nome do acabamento deve ter entre 2 e 30 caracteres");
+      return;
+    }
+    const finishes = formData.finishes || [];
+    if (finishes.some((f) => f.toLowerCase() === trimmed.toLowerCase())) {
+      toast.error("Acabamento já existe");
+      return;
+    }
+    setFormData({ ...formData, finishes: [...finishes, trimmed] });
+    setCustomFinish("");
+    toast.success("Acabamento adicionado!");
+  };
+
+  const removeFinish = (finish: string) => {
+    setFormData({
+      ...formData,
+      finishes: formData.finishes?.filter((f) => f !== finish),
+    });
+  };
+
+  // Adicionar tamanho customizado por cor
+  const openAddSizeDialog = (colorIndex: number) => {
+    setTargetColorIndex(colorIndex);
+    setNewSizeName("");
+    setNewSizeQty(0);
+    setSizeDialogOpen(true);
+  };
+
+  const handleAddSize = () => {
+    if (targetColorIndex === null) return;
+
+    const trimmed = newSizeName.trim().toUpperCase();
+    if (!trimmed) {
+      toast.error("Digite um nome para o tamanho");
+      return;
+    }
+
+    const colors = [...(formData.colors || [])];
+    const color = colors[targetColorIndex];
+
+    // Verificar duplicação (case-insensitive)
+    if (
+      color.matrix &&
+      Object.keys(color.matrix).some(
+        (s) => s.toLowerCase() === trimmed.toLowerCase(),
+      )
+    ) {
+      toast.error("Tamanho já existe nesta cor");
+      return;
+    }
+
+    if (!color.matrix) color.matrix = {};
+    color.matrix[trimmed] = { qty: newSizeQty };
+
+    // Adicionar ao sizes global se não existir
+    if (!formData.sizes?.includes(trimmed)) {
+      setFormData({
+        ...formData,
+        colors,
+        sizes: [...(formData.sizes || []), trimmed],
+      });
+    } else {
+      setFormData({ ...formData, colors });
+    }
+
+    toast.success(`Tamanho ${trimmed} adicionado!`);
+    setSizeDialogOpen(false);
+  };
+
+  const removeSizeFromColor = (colorIndex: number, size: string) => {
+    if (!confirm(`Remover tamanho "${size}" desta cor?`)) return;
+
+    const colors = [...(formData.colors || [])];
+    const color = colors[colorIndex];
+    if (color.matrix) {
+      delete color.matrix[size];
+    }
+    setFormData({ ...formData, colors });
+    toast.success(`Tamanho ${size} removido`);
+  };
+
+  // Media handling
+  const handleMediaUpload = async (
+    files: FileList,
+    colorIndex: number,
+    type: "photos" | "mockups" | "arts",
+  ) => {
+    if (!files.length) return;
+    setUploading(true);
+
+    try {
+      const keys: string[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        if (!file.type.startsWith("image/")) {
+          toast.error(`${file.name} não é uma imagem válida`);
+          continue;
+        }
+        const key = `product_${colorIndex}_${type}_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+        await idbSet(key, file);
+        keys.push(key);
+      }
+
+      const colors = [...(formData.colors || [])];
+      colors[colorIndex].media = colors[colorIndex].media || { photos: [], mockups: [], arts: [] };
+      colors[colorIndex].media[type] = [
+        ...(colors[colorIndex].media[type] || []),
+        ...keys,
+      ];
+      setFormData({ ...formData, colors });
+
+      toast.success(
+        `${keys.length} ${keys.length === 1 ? "imagem adicionada" : "imagens adicionadas"}!`,
+      );
+    } catch (error) {
+      toast.error("Erro ao adicionar imagens");
+      console.error(error);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removeMedia = async (
+    colorIndex: number,
+    type: "photos" | "mockups" | "arts",
+    index: number,
+  ) => {
+    const colors = [...(formData.colors || [])];
+    const m = colors[colorIndex].media || { photos: [], mockups: [], arts: [] };
+    const key = (m[type] || [])[index];
+    if (key) {
+      await idbDel(key);
+    }
+    colors[colorIndex].media[type] = (colors[colorIndex].media[type] || []).filter(
+      (_, i) => i !== index,
+    );
+    setFormData({ ...formData, colors });
+    toast.success("Imagem removida");
+  };
+
+  const downloadMedia = async (key: string, filename: string) => {
+    try {
+      const file = (await idbGet(key)) as File;
+      if (!file) {
+        toast.error("Arquivo não encontrado");
+        return;
+      }
+      const url = URL.createObjectURL(file);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename || file.name || "download";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success("Download iniciado!");
+    } catch (error) {
+      toast.error("Erro ao baixar arquivo");
+      console.error(error);
+    }
+  };
+
+  const MediaGallery = ({
+    colorIndex,
+    type,
+    title,
+  }: {
+    colorIndex: number;
+    type: "photos" | "mockups" | "arts";
+    title: string;
+  }) => {
+    const inputRef = useRef<HTMLInputElement>(null);
+    const [previews, setPreviews] = useState<string[]>([]);
+    const color = formData.colors?.[colorIndex];
+
+    useEffect(() => {
+      const loadPreviews = async () => {
+        if (!color?.media || !color.media[type] || color.media[type].length === 0) {
+          setPreviews([]);
+          return;
+        }
+        const urls: string[] = [];
+        for (const key of color.media[type]) {
+          const file = (await idbGet(key)) as File;
+          if (file) {
+            urls.push(URL.createObjectURL(file));
+          }
+        }
+        setPreviews(urls);
+      };
+      loadPreviews();
+
+      return () => {
+        previews.forEach((url) => URL.revokeObjectURL(url));
+      };
+    }, [color?.media && color.media[type]]);
+
+    return (
+      <div className="grid gap-2">
+        <div className="flex items-center justify-between">
+          <Label className="text-sm">{title}</Label>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() => inputRef.current?.click()}
+            disabled={uploading}
+          >
+            <Upload className="h-3 w-3 mr-1" />
+            Adicionar
+          </Button>
+        </div>
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          className="hidden"
+          onChange={(e) =>
+            e.target.files &&
+            handleMediaUpload(e.target.files, colorIndex, type)
+          }
+        />
+        {color?.media[type]?.length ? (
+          <div className="grid grid-cols-3 gap-2">
+            {previews.map((url, idx) => (
+              <div
+                key={idx}
+                className="relative group aspect-square border rounded overflow-hidden"
+              >
+                <img
+                  src={url}
+                  alt={`${title} ${idx + 1}`}
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="secondary"
+                    className="h-7 w-7"
+                    onClick={() =>
+                      downloadMedia(
+                        color.media[type][idx],
+                        `${title}-${idx + 1}`,
+                      )
+                    }
+                  >
+                    <Download className="h-3 w-3" />
+                  </Button>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="destructive"
+                    className="h-7 w-7"
+                    onClick={() => removeMedia(colorIndex, type, idx)}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="border-2 border-dashed rounded p-4 text-center text-xs text-muted-foreground">
+            Nenhuma imagem
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const allFinishes = [
+    ...DEFAULT_FINISHES,
+    ...(formData.finishes || []).filter((f) => !DEFAULT_FINISHES.includes(f)),
+  ];
+
+  return (
+    <div className="space-y-6">
+      {/* Header title */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Produtos</h1>
+          <p className="text-muted-foreground mt-1">
+            Gerencie o catálogo de produtos
+          </p>
+        </div>
+      </div>
+
+      {/* Filters row moved below title */}
+      <div className="flex items-center gap-2"> 
+          <Tabs value={filter} onValueChange={(v)=>setFilter(v as any)}>
+            <TabsList>
+              <TabsTrigger value="Todos">Todos</TabsTrigger>
+              <TabsTrigger value="Uniforme">Uniformes</TabsTrigger>
+              <TabsTrigger value="Brinde">Brindes</TabsTrigger>
+            </TabsList>
+          </Tabs>
+          <Input placeholder="Buscar (nome, ref, descrição)" value={query} onChange={(e)=>setQuery(e.target.value)} className="w-56" />
+          <Select value={sort} onValueChange={(v)=>setSort(v as any)}>
+            <SelectTrigger className="w-44"><SelectValue placeholder="Ordenar" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="name-asc">Nome A?Z</SelectItem>
+              <SelectItem value="name-desc">Nome Z?A</SelectItem>
+              <SelectItem value="ref-asc">Ref A?Z</SelectItem>
+              <SelectItem value="ref-desc">Ref Z?A</SelectItem>
+              <SelectItem value="created-desc">Mais recente</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button onClick={() => handleOpenDialog()}>
+            <Plus className="h-4 w-4 mr-2" />
+            Novo Produto
+            </Button>
+      </div>
+
+      {/* Product cards list below filters */}
+      <div className="grid gap-4">
+        {loading
+          ? Array(3)
+              .fill(0)
+              .map((_, i) => (
+                <Card key={i} className="hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Skeleton className="h-6 w-48" />
+                          <Skeleton className="h-5 w-16" />
+                          <Skeleton className="h-5 w-24" />
+                        </div>
+                        <Skeleton className="h-4 w-64" />
+                      </div>
+                      <div className="flex gap-2">
+                        <Skeleton className="h-8 w-8 rounded-md" />
+                        <Skeleton className="h-8 w-8 rounded-md" />
+                        <Skeleton className="h-8 w-8 rounded-md" />
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex flex-wrap gap-2">
+                      <Skeleton className="h-5 w-20" />
+                      <Skeleton className="h-5 w-24" />
+                      <Skeleton className="h-5 w-16" />
+                    </div>
+                    <div className="space-y-3">
+                      <Skeleton className="h-16 w-full" />
+                      <Skeleton className="h-16 w-full" />
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+          : produtos
+              .filter((p) => (filter === "Todos" ? true : p.type === filter))
+              .map((produto) => (
+              <Card
+                key={produto.id}
+                className="hover:shadow-lg transition-shadow"
+              >
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="flex items-center gap-3">
+                          {produto.colors?.[0]?.media?.photos?.[0] ? (
+                            <Thumbnail keyRef={produto.colors[0].media.photos[0]} />
+                          ) : (
+                            <div className="w-10 h-10 flex items-center justify-center rounded-md bg-muted text-muted-foreground">
+                              <ImageIcon className="w-5 h-5" />
+                            </div>
+                          )}
+                          <CardTitle className="text-xl">{produto.name}</CardTitle>
+                        </div>
+                        <Badge
+                          variant={produto.active ? "default" : "secondary"}
+                        >
+                          {produto.active ? "Ativo" : "Inativo"}
+                        </Badge>
+                        <Badge variant="outline">{produto.type}</Badge>
+                      </div>
+                      <CardDescription>
+                        Ref: {produto.ref}
+                        {produto.description && ` • ${produto.description}`}
+                      </CardDescription>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDuplicate(produto)}
+                        className="hover:bg-info/10 hover:text-info"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleOpenDialog(produto)}
+                        className="hover:bg-primary/10 hover:text-primary"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDelete(produto.id, produto.name)}
+                        className="hover:bg-destructive/10 hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {produto.finishes.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {produto.finishes.map((finish) => (
+                        <Badge key={finish} variant="secondary">
+                          {finish}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="space-y-3">
+                    {(produto.colors || []).map((color) => {
+                      const total =
+                        produto.type === "Brinde"
+                          ? color.qty || 0
+                          : Object.values(color.matrix || {}).reduce(
+                              (s, i) => s + (i?.qty || 0),
+                              0,
+                            );
+
+                      return (
+                        <div
+                          key={color.id}
+                          className="p-3 bg-muted/50 rounded-lg"
+                        >
+                          <div className="flex items-center gap-2 mb-2">
+                            <div
+                              className="w-6 h-6 rounded-full border-2 border-border"
+                              style={{ backgroundColor: color.colorHex }}
+                            />
+                            <span className="font-medium">
+                              {color.colorName}
+                            </span>
+                            <Badge variant="outline" className="ml-auto">
+                              Total: {total} pçs
+                            </Badge>
+                          </div>
+                          {produto.type === "Uniforme" && color.matrix && (
+                            <div className="text-xs text-muted-foreground">
+                              {Object.entries(color.matrix || {})
+                                .filter(([_, item]) => item?.qty)
+                                .map(([size, item]) => `${size}: ${item?.qty}`)
+                                .join(" • ")}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+        {produtos.length === 0 && (
+          <Card className="border-dashed">
+            <CardContent className="flex flex-col items-center justify-center py-16">
+              <div className="text-sm text-muted-foreground">
+                Nenhum produto encontrado.
+              </div>
+              <div className="mt-2 text-xs text-muted-foreground">
+                Use o botão “Novo Produto” para adicionar.
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Dialog Principal */}
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>
+                {editingProduto ? "Editar Produto" : "Novo Produto"}
+              </DialogTitle>
+              <DialogDescription>
+                Configure o produto com cores e tamanhos
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="grid gap-6 py-4">
+              {/* Basic Info */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label>Nome *</Label>
+                  <Input
+                    value={formData.name || ""}
+                    onChange={(e) =>
+                      setFormData({ ...formData, name: e.target.value })
+                    }
+                    placeholder="Ex: Camisa Polo Premium"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label>Referência *</Label>
+                  <Input
+                    value={formData.ref || ""}
+                    onChange={(e) =>
+                      setFormData({ ...formData, ref: e.target.value })
+                    }
+                    placeholder="Ex: POLO-001"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label>Tipo</Label>
+                  <Select
+                    value={formData.type}
+                    onValueChange={(value: "Uniforme" | "Brinde") =>
+                      setFormData({ ...formData, type: value })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Uniforme">Uniforme</SelectItem>
+                      <SelectItem value="Brinde">Brinde</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-center gap-3 pt-8">
+                  <Switch
+                    checked={formData.active}
+                    onCheckedChange={(checked) =>
+                      setFormData({ ...formData, active: checked })
+                    }
+                  />
+                  <Label>Produto ativo</Label>
+                </div>
+              </div>
+
+              <div className="grid gap-2">
+                <Label>Descrição</Label>
+                <Textarea
+                  value={formData.description || ""}
+                  onChange={(e) =>
+                    setFormData({ ...formData, description: e.target.value })
+                  }
+                  placeholder="Breve descrição do produto"
+                  rows={2}
+                />
+              </div>
+
+              {/* Finishes */}
+              <div className="grid gap-3">
+                <Label>Acabamentos</Label>
+                <div className="flex flex-wrap gap-2">
+                  {DEFAULT_FINISHES.map((finish) => (
+                    <Button
+                      key={finish}
+                      type="button"
+                      variant={
+                        formData.finishes?.includes(finish)
+                          ? "default"
+                          : "outline"
+                      }
+                      size="sm"
+                      onClick={() => toggleFinish(finish)}
+                    >
+                      {finish}
+                    </Button>
+                  ))}
+                </div>
+
+                {/* Custom finishes */}
+                {formData.finishes
+                  ?.filter((f) => !DEFAULT_FINISHES.includes(f))
+                  .map((finish) => (
+                    <Badge
+                      key={finish}
+                      variant="secondary"
+                      className="w-fit gap-2"
+                    >
+                      {finish}
+                      <X
+                        className="h-3 w-3 cursor-pointer hover:text-destructive"
+                        onClick={() => removeFinish(finish)}
+                      />
+                    </Badge>
+                  ))}
+
+                <div className="flex gap-2 items-end">
+                  <div className="grid gap-2 flex-1">
+                    <Label className="text-sm text-muted-foreground">
+                      Adicionar acabamento personalizado
+                    </Label>
+                    <Input
+                      value={customFinish}
+                      onChange={(e) => setCustomFinish(e.target.value)}
+                      placeholder="Nome do acabamento (2-30 caracteres)"
+                      onKeyDown={(e) => e.key === "Enter" && addCustomFinish()}
+                    />
+                  </div>
+                  <Button type="button" size="sm" onClick={addCustomFinish}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Acabamento
+                  </Button>
+                </div>
+              </div>
+
+              {/* Colors */}
+              <div className="grid gap-4">
+                <div className="flex items-center justify-between">
+                  <Label>Cores e Quantidades</Label>
+                  <Button type="button" size="sm" onClick={addColor}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Adicionar Cor
+                  </Button>
+                </div>
+
+                {formData.colors?.map((color, colorIndex) => (
+                  <div
+                    key={color.id}
+                    className="p-4 border rounded-lg space-y-4"
+                  >
+                    {/* Header da Cor */}
+                    <div className="flex items-center gap-4">
+                      <div className="grid gap-2 flex-1">
+                        <Input
+                          placeholder="Nome da cor"
+                          value={color.colorName}
+                          onChange={(e) =>
+                            updateColor(colorIndex, {
+                              colorName: e.target.value,
+                            })
+                          }
+                        />
+                      </div>
+                      <input
+                        type="color"
+                        value={color.colorHex}
+                        onChange={(e) =>
+                          updateColor(colorIndex, { colorHex: e.target.value })
+                        }
+                        className="w-20 h-10 rounded cursor-pointer"
+                      />
+                      {formData.type === "Uniforme" && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => openAddSizeDialog(colorIndex)}
+                        >
+                          <Plus className="h-3 w-3 mr-1" />
+                          Tamanho
+                        </Button>
+                      )}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeColor(colorIndex)}
+                        className="hover:bg-destructive/10 hover:text-destructive"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+
+                    {/* Grade ou Quantidade Unitária */}
+                    {formData.type === "Uniforme" ? (
+                      <div className="space-y-2">
+                        <div className="grid grid-cols-5 gap-2">
+                          {Object.entries(color.matrix || {}).map(
+                            ([size, item]) => (
+                              <div key={size} className="grid gap-1">
+                                <div className="flex items-center justify-between">
+                                  <Label className="text-xs text-center">
+                                    {size}
+                                  </Label>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      removeSizeFromColor(colorIndex, size)
+                                    }
+                                    className="text-destructive hover:text-destructive/80"
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </button>
+                                </div>
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  value={item?.qty || ""}
+                                  onChange={(e) =>
+                                    updateMatrix(
+                                      colorIndex,
+                                      size,
+                                      parseInt(e.target.value) || 0,
+                                    )
+                                  }
+                                  className="text-center"
+                                />
+                              </div>
+                            ),
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="grid gap-2">
+                        <Label>Quantidade</Label>
+                        <Input
+                          type="number"
+                          min="0"
+                          value={color.qty || ""}
+                          onChange={(e) =>
+                            updateColor(colorIndex, {
+                              qty: parseInt(e.target.value) || 0,
+                            })
+                          }
+                        />
+                      </div>
+                    )}
+
+                    {/* Galerias de Mídia */}
+                    <div className="grid grid-cols-3 gap-4 pt-2 border-t">
+                      <MediaGallery
+                        colorIndex={colorIndex}
+                        type="photos"
+                        title="Fotos (Logos)"
+                      />
+                      <MediaGallery
+                        colorIndex={colorIndex}
+                        type="mockups"
+                        title="Mockups"
+                      />
+                      <MediaGallery
+                        colorIndex={colorIndex}
+                        type="arts"
+                        title="Artes"
+                      />
+                    </div>
+
+                    <div className="text-sm font-medium text-muted-foreground">
+                      Total da cor: {getTotalQty(color)} peças
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDialogOpen(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={handleSave} disabled={uploading}>
+                {editingProduto ? "Salvar" : "Criar"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialog para Adicionar Tamanho */}
+        <Dialog open={sizeDialogOpen} onOpenChange={setSizeDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Adicionar Tamanho</DialogTitle>
+              <DialogDescription>
+                Adicione um tamanho customizado para esta cor
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label>Nome do Tamanho *</Label>
+                <Input
+                  value={newSizeName}
+                  onChange={(e) => setNewSizeName(e.target.value)}
+                  placeholder="Ex: 2XL, G6, 50"
+                  onKeyDown={(e) => e.key === "Enter" && handleAddSize()}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label>Quantidade Inicial</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={newSizeQty}
+                  onChange={(e) => setNewSizeQty(parseInt(e.target.value) || 0)}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setSizeDialogOpen(false)}
+              >
+                Cancelar
+              </Button>
+              <Button onClick={handleAddSize}>Adicionar</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </div>
+    );
+}

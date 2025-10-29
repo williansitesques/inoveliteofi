@@ -1,0 +1,20 @@
+*** Begin Patch
+*** Update File: src/pages/Produtos.tsx
+@@
+-            </DialogFooter>
+-            </DialogContent>
+-            </Dialog>
+-          </div>
+-        </div>
+-      </div>
+-    );
+-}
++            </DialogFooter>
++          </DialogContent>
++        </Dialog>
++      </div>
++    </div>
++  </div>
++  );
++}
+*** End Patch

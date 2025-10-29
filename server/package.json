@@ -1,0 +1,22 @@
+{
+  "name": "inovelite-auth-server",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "seed:willian": "curl -s -X POST http://localhost:3001/api/dev/seed-user -H \"Content-Type: application/json\" -d \"{\\\"name\\\":\\\"Willian\\\",\\\"email\\\":\\\"willianinove01@gmail.com\\\",\\\"password\\\":\\\"123456\\\"}\" || npx -y curl-cli http://localhost:3001/api/dev/seed-user -X POST -H \"Content-Type: application/json\" -d \"{\\\"name\\\":\\\"Willian\\\",\\\"email\\\":\\\"willianinove01@gmail.com\\\",\\\"password\\\":\\\"123456\\\"}\"",
+    "seed:admin": "curl -s -X POST http://localhost:3001/api/dev/seed-user -H \"Content-Type: application/json\" -d \"{\\\"name\\\":\\\"Admin Demo\\\",\\\"email\\\":\\\"admin.demo@empresa.com\\\",\\\"password\\\":\\\"123456\\\",\\\"roleId\\\":\\\"admin\\\"}\" || npx -y curl-cli http://localhost:3001/api/dev/seed-user -X POST -H \"Content-Type: application/json\" -d \"{\\\"name\\\":\\\"Admin Demo\\\",\\\"email\\\":\\\"admin.demo@empresa.com\\\",\\\"password\\\":\\\"123456\\\",\\\"roleId\\\":\\\"admin\\\"}\"",
+    "seed:producao": "curl -s -X POST http://localhost:3001/api/dev/seed-user -H \"Content-Type: application/json\" -d \"{\\\"name\\\":\\\"Producao Demo\\\",\\\"email\\\":\\\"producao.demo@empresa.com\\\",\\\"password\\\":\\\"123456\\\",\\\"roleId\\\":\\\"producao\\\",\\\"permissions\\\":[\\\"dashboard\\\",\\\"ops\\\",\\\"kanban\\\",\\\"relatorios\\\"]}\" || npx -y curl-cli http://localhost:3001/api/dev/seed-user -X POST -H \"Content-Type: application/json\" -d \"{\\\"name\\\":\\\"Producao Demo\\\",\\\"email\\\":\\\"producao.demo@empresa.com\\\",\\\"password\\\":\\\"123456\\\",\\\"roleId\\\":\\\"producao\\\",\\\"permissions\\\":[\\\"dashboard\\\",\\\"ops\\\",\\\"kanban\\\",\\\"relatorios\\\"]}\"",
+    "seed:comercial": "curl -s -X POST http://localhost:3001/api/dev/seed-user -H \"Content-Type: application/json\" -d \"{\\\"name\\\":\\\"Comercial Demo\\\",\\\"email\\\":\\\"comercial.demo@empresa.com\\\",\\\"password\\\":\\\"123456\\\",\\\"roleId\\\":\\\"comercial\\\",\\\"permissions\\\":[\\\"dashboard\\\",\\\"clientes\\\",\\\"produtos\\\",\\\"pedidos\\\",\\\"relatorios\\\"]}\" || npx -y curl-cli http://localhost:3001/api/dev/seed-user -X POST -H \"Content-Type: application/json\" -d \"{\\\"name\\\":\\\"Comercial Demo\\\",\\\"email\\\":\\\"comercial.demo@empresa.com\\\",\\\"password\\\":\\\"123456\\\",\\\"roleId\\\":\\\"comercial\\\",\\\"permissions\\\":[\\\"dashboard\\\",\\\"clientes\\\",\\\"produtos\\\",\\\"pedidos\\\",\\\"relatorios\\\"]}\"",
+    "seed:viewer": "curl -s -X POST http://localhost:3001/api/dev/seed-user -H \"Content-Type: application/json\" -d \"{\\\"name\\\":\\\"Viewer Demo\\\",\\\"email\\\":\\\"viewer.demo@empresa.com\\\",\\\"password\\\":\\\"123456\\\",\\\"roleId\\\":\\\"viewer\\\",\\\"permissions\\\":[\\\"dashboard\\\",\\\"relatorios\\\"]}\" || npx -y curl-cli http://localhost:3001/api/dev/seed-user -X POST -H \"Content-Type: application/json\" -d \"{\\\"name\\\":\\\"Viewer Demo\\\",\\\"email\\\":\\\"viewer.demo@empresa.com\\\",\\\"password\\\":\\\"123456\\\",\\\"roleId\\\":\\\"viewer\\\",\\\"permissions\\\":[\\\"dashboard\\\",\\\"relatorios\\\"]}\""
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "zod": "^3.25.76"
+  }
+}

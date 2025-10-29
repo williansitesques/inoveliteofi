@@ -1,0 +1,22 @@
+{
+    "id":  "u-willian",
+    "name":  "Willian",
+    "email":  "willianinove01@gmail.com",
+    "phone":  "",
+    "roleId":  "admin",
+    "permissions":  [
+                        "dashboard",
+                        "clientes",
+                        "produtos",
+                        "pedidos",
+                        "ops",
+                        "kanban",
+                        "financeiro",
+                        "relatorios",
+                        "config"
+                    ],
+    "status":  "ativo",
+    "passwordHash":  "$2a$10$LEv3o9k9cJ1h0QxvQ4vT2uXz9E9xwS9O7sJmH8G1Hqv3n1xJ0bqPu",
+    "createdAt":  1761558120000,
+    "updatedAt":  1761558120000
+}

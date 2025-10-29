@@ -1,0 +1,24 @@
+[
+  {
+    "id": "e879cb6c-ed5b-4174-ba93-6399c93fb641",
+    "name": "Willian",
+    "email": "willianinove01@gmail.com",
+    "phone": "11967003286",
+    "roleId": "admin",
+    "permissions": [
+      "dashboard",
+      "clientes",
+      "produtos",
+      "pedidos",
+      "ops",
+      "kanban",
+      "financeiro",
+      "relatorios",
+      "config"
+    ],
+    "status": "ativo",
+    "passwordHash": "$2a$10$AXxxCDXe3Z6QbPJYNgFMj.P67pqkYWhis46/dWfvhE8bsTd9MR10a",
+    "createdAt": 1761576773681,
+    "updatedAt": 1761577660576
+  }
+]
