@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -63,10 +63,14 @@ export default function Login() {
             <Button type="submit" className="w-full" aria-label="Entrar">
               Entrar
             </Button>
+            <div className="text-center text-sm">
+              <Link to="/primeiro-acesso" className="text-blue-600 hover:underline">
+                Crie um administrador
+              </Link>
+            </div>
           </form>
         </CardContent>
       </Card>
     </div>
   );
 }
-
